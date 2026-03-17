@@ -130,6 +130,13 @@
   .topic-name{color:#ccc;font-size:14px;flex:1}
   .topic-arrow{color:var(--dim);font-size:14px}
   .topic-detail{color:var(--muted);font-size:13px;line-height:19px;margin-top:8px;margin-left:17px;padding-left:10px;border-left:2px solid var(--border)}
+  .topic-check{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--dim);background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all 0.2s;margin-left:auto}
+  .topic-check.done{background:#0F6E56;border-color:#0F6E56}
+  .topic-check.done::after{content:'✓';color:#fff;font-size:13px;font-weight:700}
+  .topic-item.completed .topic-name{color:var(--dim);text-decoration:line-through}
+  .progress-bar-wrap{height:4px;background:var(--border);border-radius:4px;margin-top:12px;overflow:hidden}
+  .progress-bar-fill{height:4px;border-radius:4px;background:#0F6E56;transition:width 0.4s ease}
+  .progress-label{font-size:12px;color:var(--muted);margin-top:6px}
 
   /* PROBLEMS */
   .problem-item{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)}
@@ -630,6 +637,29 @@ function toggleTopic(weekIdx, monthIdx, topicIdx) {
   }
 }
 
+function toggleDone(key, monthIdx, weekIdx) {
+  const storageKey = 'done-' + key;
+  const isDone = localStorage.getItem(storageKey) === '1';
+  const newDone = !isDone;
+  localStorage.setItem(storageKey, newDone ? '1' : '0');
+
+  const check = document.getElementById('check-' + key);
+  const item = document.getElementById('item-' + key);
+  if (check) { check.classList.toggle('done', newDone); }
+  if (item)  { item.classList.toggle('completed', newDone); }
+
+  // Update progress bar
+  const month = curriculum[monthIdx];
+  const week = month.weeks[weekIdx];
+  const total = week.topics.length;
+  const done = week.topics.filter((_,i) => localStorage.getItem('done-'+monthIdx+'-'+weekIdx+'-'+i)==='1').length;
+  const pct = Math.round((done/total)*100);
+  const fill = document.getElementById('prog-fill-'+monthIdx+'-'+weekIdx);
+  const label = document.getElementById('prog-label-'+monthIdx+'-'+weekIdx);
+  if (fill)  fill.style.width = pct + '%';
+  if (label) label.textContent = done + ' / ' + total + ' completed';
+}
+
 function showWeek(monthIdx, weekIdx) {
   const month = curriculum[monthIdx];
   const week = month.weeks[weekIdx];
@@ -690,6 +720,8 @@ function showWeek(monthIdx, weekIdx) {
         <span class="block-title">Topics</span>
         <div class="block-count" style="background:${month.color}22;color:${month.color}">${week.topics.length}</div>
       </div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="prog-fill-${monthIdx}-${weekIdx}" style="width:${Math.round((week.topics.filter((_,i)=>localStorage.getItem('done-'+monthIdx+'-'+weekIdx+'-'+i)==='1').length/week.topics.length)*100)}%"></div></div>
+      <div class="progress-label" id="prog-label-${monthIdx}-${weekIdx}">${week.topics.filter((_,i)=>localStorage.getItem('done-'+monthIdx+'-'+weekIdx+'-'+i)==='1').length} / ${week.topics.length} completed</div>
       ${topicsHTML}
     </div>
     <div class="block">
