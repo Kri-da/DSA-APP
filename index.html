@@ -129,6 +129,12 @@
   .topic-dot{width:7px;height:7px;border-radius:4px;flex-shrink:0}
   .topic-name{color:#ccc;font-size:14px;flex:1}
   .topic-arrow{color:var(--dim);font-size:14px}
+  .topic-check{width:24px;height:24px;min-width:24px;border-radius:7px;border:1.5px solid #444;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:14px;color:transparent}
+  .topic-check.done{background:#0F6E56;border-color:#0F6E56;color:#fff}
+  .topic-item.completed .topic-name{color:var(--dim);text-decoration:line-through}
+  .prog-wrap{height:5px;background:var(--border);border-radius:5px;margin:10px 0 4px;overflow:hidden}
+  .prog-fill{height:5px;border-radius:5px;background:#0F6E56;transition:width 0.4s ease}
+  .prog-label{font-size:12px;color:var(--muted);margin-bottom:10px}
   .topic-detail{color:var(--muted);font-size:13px;line-height:19px;margin-top:8px;margin-left:17px;padding-left:10px;border-left:2px solid var(--border)}
   .topic-check{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--dim);background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all 0.2s;margin-left:auto}
   .topic-check.done{background:#0F6E56;border-color:#0F6E56}
@@ -660,6 +666,28 @@ function toggleDone(key, monthIdx, weekIdx) {
   if (label) label.textContent = done + ' / ' + total + ' completed';
 }
 
+function updateProgress(mIdx, wIdx) {
+  const week = curriculum[mIdx].weeks[wIdx];
+  const total = week.topics.length;
+  const done = week.topics.filter((_,i) => localStorage.getItem('chk-'+mIdx+'-'+wIdx+'-'+i)==='1').length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  const fill = document.getElementById('pf-'+mIdx+'-'+wIdx);
+  const lbl  = document.getElementById('pl-'+mIdx+'-'+wIdx);
+  if (fill) fill.style.width = pct+'%';
+  if (lbl)  lbl.textContent  = done+' / '+total+' completed';
+}
+
+function markDone(key, mIdx, wIdx) {
+  const was = localStorage.getItem('chk-'+key)==='1';
+  const now = !was;
+  localStorage.setItem('chk-'+key, now?'1':'0');
+  const box  = document.getElementById('chk-'+key);
+  const item = document.getElementById('ti-'+key);
+  if (box)  { box.classList.toggle('done', now); }
+  if (item) { item.classList.toggle('completed', now); }
+  updateProgress(mIdx, wIdx);
+}
+
 function showWeek(monthIdx, weekIdx) {
   const month = curriculum[monthIdx];
   const week = month.weeks[weekIdx];
@@ -679,11 +707,14 @@ function showWeek(monthIdx, weekIdx) {
 
   let topicsHTML = week.topics.map((t,i) => {
     const key = `${monthIdx}-${weekIdx}-${i}`;
-    return `<div class="topic-item" onclick="toggleTopic(${weekIdx},${monthIdx},${i})">
-      <div class="topic-row">
-        <div class="topic-dot" style="background:${month.color}"></div>
-        <span class="topic-name">${t.name}</span>
-        <span class="topic-arrow" id="arrow-${key}">▼</span>
+    const isDone = localStorage.getItem('chk-'+key) === '1';
+    return `<div class="topic-item${isDone ? ' completed' : ''}" id="ti-${key}">
+      <div class="topic-row" style="display:flex;align-items:center;gap:8px">
+        <div class="topic-dot" style="background:${month.color};flex-shrink:0"></div>
+        <span class="topic-name" onclick="toggleTopic(${weekIdx},${monthIdx},${i})" style="flex:1;cursor:pointer">${t.name}</span>
+        <span class="topic-arrow" id="arrow-${key}" onclick="toggleTopic(${weekIdx},${monthIdx},${i})" style="cursor:pointer;margin-right:8px;flex-shrink:0">▼</span>
+        <div id="chk-${key}" onclick="event.stopPropagation();markDone('${key}',${monthIdx},${weekIdx})"
+          style="width:24px;height:24px;min-width:24px;border-radius:7px;border:1.5px solid ${isDone ? '#0F6E56' : '#555'};background:${isDone ? '#0F6E56' : 'transparent'};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:14px;color:${isDone ? '#fff' : 'transparent'};transition:all 0.2s">✓</div>
       </div>
       <div class="topic-detail" id="detail-${key}" style="display:none">${t.detail}</div>
     </div>`;
@@ -747,6 +778,7 @@ function showWeek(monthIdx, weekIdx) {
     </div>`;
 
   showScreen('week-screen');
+  setTimeout(()=>updateProgress(monthIdx,weekIdx),50);
 }
 </script>
 </body>
